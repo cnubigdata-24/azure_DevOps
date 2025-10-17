@@ -2,83 +2,21 @@ trigger:
 - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
-variables:
-  pythonVersion: '3.9'
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.9'
 
-stages:
-- stage: Build
-  displayName: 'Build and Test Stage'
-  jobs:
-  - job: BuildJob
-    displayName: 'Build Job'
-    steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(pythonVersion)'
-      displayName: 'Use Python $(pythonVersion)'
+- script: python -m pip install --upgrade pip
+  displayName: Install pip
 
-    - script: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-      displayName: 'Install dependencies'
+- script: pip install -r requirements.txt
+  displayName: Install requirements
 
-    - script: |
-        pip install pytest pytest-cov
-        pytest tests/ --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
-      displayName: 'Run tests'
-      continueOnError: false
+- script: pip install pytest
+  displayName: Install pytest
 
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/test-results.xml'
-        failTaskOnFailedTests: true
-      displayName: 'Publish test results'
-
-    - task: PublishCodeCoverageResults@1
-      inputs:
-        codeCoverageTool: 'Cobertura'
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
-      displayName: 'Publish code coverage'
-
-- stage: Info
-  displayName: 'Build Summary'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - job: InfoJob
-    displayName: 'Show Build Info'
-    steps:
-    - script: |
-        echo "=========================================="
-        echo "Build completed successfully!"
-        echo "=========================================="
-        echo "Source: GitHub"
-        echo "CI/CD: Azure DevOps Pipelines"
-        echo "=========================================="
-        echo "Next steps:"
-        echo "- Review test results"
-        echo "- Check code coverage"
-        echo "- Deploy to Azure (optional)"
-        echo "=========================================="
-      displayName: 'Build Information'
-```
-
-### 4. 우측 상단 **"Save and run"** 버튼 클릭
-
-### 5. 팝업창이 나타나면:
-
-- **"Commit directly to the main branch"** 선택
-- Commit message: `Add Azure DevOps Pipeline` (기본값 그대로)
-- **"Save and run"** 버튼 다시 클릭
-
----
-
-## 예상 결과
-
-파이프라인이 실행되기 시작하지만, **대부분 다음 오류가 발생합니다:**
-```
-No hosted parallelism has been purchased or granted.
+- script: pytest tests/
+  displayName: Run tests
