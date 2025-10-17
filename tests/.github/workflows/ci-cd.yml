@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Run tests
+      run: |
+        pytest tests/ --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: junit/test-results.xml
+    
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: htmlcov/
+    
+    - name: Build summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "Build completed successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "All tests passed!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "- Deploy to Azure Web App" >> $GITHUB_STEP_SUMMARY
+        echo "- Configure production environment" >> $GITHUB_STEP_SUMMARY
+
+  deploy-info:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: success()
+    
+    steps:
+    - name: Deployment Info
+      run: |
+        echo "=========================================="
+        echo "Build and Test completed successfully!"
+        echo "=========================================="
+        echo "Ready for deployment to production"
+        echo "=========================================="
